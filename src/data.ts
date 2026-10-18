@@ -240,6 +240,28 @@ const escapeICS = (value: string) =>
     .replace(/\r?\n/g, "\\n")
     .replace(/,/g, "\\,")
     .replace(/;/g, "\\;");
+// RFC 5545 3.1: keep lines within 75 octets and fold with CRLF + space.
+// Iterating by code point keeps multi-byte characters whole.
+const encoder = new TextEncoder();
+const foldICS = (line: string) => {
+  const parts: string[] = [];
+  let part = "",
+    size = 0,
+    limit = 75;
+  for (const char of line) {
+    const bytes = encoder.encode(char).length;
+    if (size + bytes > limit) {
+      parts.push(part);
+      part = "";
+      size = 0;
+      limit = 74;
+    }
+    part += char;
+    size += bytes;
+  }
+  parts.push(part);
+  return parts.join("\r\n ");
+};
 const stamp = (date: Date) =>
   date
     .toISOString()
@@ -264,5 +286,7 @@ export function calendarFile(title: string, date: string, time: string) {
     "END:VEVENT",
     "END:VCALENDAR",
     "",
-  ].join("\r\n");
+  ]
+    .map(foldICS)
+    .join("\r\n");
 }
