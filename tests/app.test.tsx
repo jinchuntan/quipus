@@ -190,4 +190,20 @@ describe("portable exports", () => {
       "Choose a valid date and time.",
     );
   });
+  it("folds long calendar lines at 75 octets without splitting characters", () => {
+    const encoder = new TextEncoder(),
+      decoder = new TextDecoder();
+    for (const title of [
+      "Review the first pilot feedback with Maya — café notes ".repeat(4),
+      `ab${"🎯".repeat(30)}`,
+    ]) {
+      const result = calendarFile(title, "2026-10-20", "10:00");
+      for (const line of result.split("\r\n")) {
+        const bytes = encoder.encode(line);
+        expect(bytes.length).toBeLessThanOrEqual(75);
+        expect(decoder.decode(bytes)).toBe(line);
+      }
+      expect(result.replace(/\r\n /g, "")).toContain(`SUMMARY:${title}\r\n`);
+    }
+  });
 });
