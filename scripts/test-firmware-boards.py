@@ -36,6 +36,8 @@ with tempfile.TemporaryDirectory(prefix="quipus-board-tests-") as temporary:
         subprocess.run([str(binary)], check=True)
 
     run("pcm", [tests / "pcm_channel_test.c"])
+    run("ble-setup", [tests / "ble_setup_test.c", source / "quipus_ble_transfer.c",
+                       source / "quipus_setup_form.c"])
     profiles = ["ZHENGCHEN_M1307", "ES3C28P", "WAVESHARE_LCD_154"]
     for profile in profiles:
         variants = [False, True] if profile == "WAVESHARE_LCD_154" else [False]

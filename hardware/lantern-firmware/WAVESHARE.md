@@ -26,8 +26,9 @@ directions run at 16 kHz, 16-bit stereo on one I2S clock. Only MIC1/MIC2 are
 enabled, selecting ordinary stereo I2S instead of the factory four-channel TDM
 example. MIC1 supplies Quipus's mono stream. Playback duplicates mono into both
 output slots, using the existing 24-to-16 kHz speech conversion. Beamforming,
-acoustic echo cancellation, stereo cloud recording, touchscreen, IMU, BLE
-provisioning and USB phone microphone are not enabled by this profile.
+acoustic echo cancellation, stereo cloud recording, touchscreen, IMU and USB
+phone microphone are not enabled by this profile. Firmware 0.10.0 adds BLE
+setup with NimBLE and authenticated LE Secure Connections.
 
 SD uses one-bit SDMMC at 10 MHz. **Recording requires a FAT32 microSD card**;
 pairing and reports work without one. Cards are never formatted by Quipus.
@@ -77,6 +78,37 @@ charge-time estimates are not assumed for an optional accessory.
 
 ## Pair and use
 
+### Bluetooth setup (Chrome on Windows or Android)
+
+1. Flash all five images from firmware **0.10.0 or later** once through USB.
+   Keep the recorder unpaired and powered on, with Bluetooth enabled on the
+   phone/computer. Bluetooth setup advertises as `Quipus-BT-XXXX`.
+2. Sign in at **https://cordra.vercel.app/dashboard/devices** in Chrome and
+   choose **Connect with Bluetooth**. Select your recorder in Chrome's chooser.
+3. If Windows or Android requests a PIN, enter the six digits shown on the
+   recorder's LCD. A protected GATT read triggers this OS pairing step before
+   Wi-Fi credentials are sent. Previously bonded peers may reconnect directly.
+4. Choose or enter a **2.4 GHz Wi-Fi network** and its password, or reuse saved
+   Wi-Fi. Choose **Save and connect**. The website creates and sends the account's
+   one-time pairing code automatically; no manual code or Wi-Fi switching is needed.
+5. The recorder saves setup, restarts and joins Wi-Fi. Keep the page open until
+   the matching hardware ID reports online in this account. Local BLE acceptance
+   alone never certifies cloud pairing. Bluetooth provisioning closes after pairing,
+   releasing controller/host memory before normal recording.
+
+Bluetooth carries setup details; recording uploads and Agora still use Wi-Fi.
+iPhone Safari can use the Wi-Fi fallback below. For a hidden Wi-Fi network or
+an unsuccessful scan, enter its name manually. If OS pairing repeatedly fails,
+remove the old Quipus Bluetooth entry in system settings and reconnect.
+
+Saved sdkconfig files retain old settings. When upgrading an existing build,
+enable **Component config → Bluetooth → NimBLE**, disable legacy SMP, enable
+LE Secure Connections, and enable **Lantern hardware → Bluetooth setup from
+Chrome**. The Waveshare defaults include these settings for a fresh build.
+See [Bluetooth setup design and validation](../../docs/bluetooth-setup.md).
+
+### Wi-Fi fallback and recording controls
+
 1. Sign in at **https://cordra.vercel.app/dashboard/devices** and create a
    pairing code. Use the deployment configured in your firmware if you changed it.
    Join `Quipus-XXXX`, password `lanternsetup`, then return to that dashboard
@@ -98,7 +130,14 @@ charge-time estimates are not assumed for an optional accessory.
 ## Validation
 
 Run `python3 scripts/test-firmware-boards.py` from the repository root for
-portable board selection and audio channel regressions.
+portable board selection, BLE frame validation and audio channel regressions.
+
+Run `QUIPUS_CHROMIUM_EXECUTABLE=/path/to/chromium node
+hardware/lantern-firmware/tests/bluetooth-setup.browser.mjs` from the repository
+root for the real-browser UI test with a simulated GATT device. This tests mobile
+layout, permission/cancel paths, wrong-backend rejection, transfer failures,
+credential routing and exact-device cloud verification. Physical radio and OS
+pairing prompts still need acceptance testing on Windows and Android.
 
 Run `python3 hardware/lantern-firmware/generate-setup-portal.py --check` to check
 the embedded HTML/JavaScript. The portal browser test also covers fragment

@@ -72,5 +72,10 @@ For another backend, set **Lantern hardware → Quipus backend URL** in ESP-IDF
 An existing sdkconfig retains saved settings rather than applying changed
 defaults. A recorder must claim a pairing code issued by the backend it calls.
 
+Waveshare firmware 0.10.0 adds [Bluetooth setup](bluetooth-setup.md) from Chrome
+on Windows and Android. Deploy this website version and flash the matching
+firmware once. Bluetooth sends pairing/Wi-Fi setup; the recorder continues to
+upload over Wi-Fi. Existing Supabase, Agora and OpenAI variables are unchanged.
+
 References: [Vercel framework/output overrides](https://vercel.com/docs/project-configuration/vercel-json)
 and [Next.js function durations](https://vercel.com/docs/functions/configuring-functions/duration).

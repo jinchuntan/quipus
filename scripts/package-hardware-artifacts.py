@@ -53,6 +53,7 @@ def package(output: Path, profile: str | None = None) -> Path:
         }
         if name == "waveshare":
             profiles[name]["apiBaseUrl"] = backend
+            profiles[name]["bluetoothSetup"] = bool(config.get("QUIPUS_BLE_SETUP"))
     if profile is None or profile == "phone-usb":
         apk = ROOT / "mobile/android/app/build/outputs/apk/debug/app-debug.apk"
         entries["android/quipus-usb-microphone-debug.apk"] = apk.read_bytes()
@@ -90,13 +91,16 @@ manifest.json contains SHA-256 and byte counts for every payload file.
 """
     if profile == "waveshare":
         entries["WAVESHARE.md"] = (ROOT / "hardware/lantern-firmware/WAVESHARE.md").read_bytes()
+        entries["BLUETOOTH.md"] = (ROOT / "docs/bluetooth-setup.md").read_bytes()
         entries["README.txt"] = f"""QUIPUS - WAVESHARE ESP32-S3-LCD-1.54 (NON-TOUCH)
 
 ESP-IDF 5.2.3 build. USB-powered default; battery percentage disabled.
 Backend and pairing dashboard: {backend}/dashboard/devices
+Bluetooth setup: Chrome on Windows or Android; enter the PIN shown on the recorder
+if the operating system requests it. The recorder still uploads over 2.4 GHz Wi-Fi.
 Only install on the Waveshare ESP32-S3-LCD-1.54, 16 MB flash / 8 MB PSRAM.
 All five required images are included, including the Computer wake-word model.
-See WAVESHARE.md for pairing, PLUS controls, microSD requirements and sources.
+See WAVESHARE.md for controls and microSD requirements; BLUETOOTH.md covers setup.
 
 Install esptool 4.12.0 into your Python environment:
   python -m pip install esptool==4.12.0

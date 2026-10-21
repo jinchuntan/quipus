@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { DeviceTransfer } from "./DeviceTransfer";
+import { BluetoothRecorderSetup } from "./BluetoothRecorderSetup";
 import { Dialog } from "@/components/ui/Dialog";
 import { useBrowserStorageSnapshot } from "@/components/hooks/useBrowserStorageSnapshot";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -250,9 +251,12 @@ function DeviceSession({
           <small>{codeExpired ? "Code expired. Create a new code to finish pairing." : `Expires in ${countdown}`}</small>
         </div>}
         {pairing && <button className={styles.secondaryAction} disabled={working} type="button" onClick={() => void createPairing()}>{working ? "Creating code…" : "Create new code"}</button>}
-        <p className={styles.networkNote}>Use the same phone or laptop for the Wi-Fi and setup-page steps. The recorder’s setup Wi-Fi has no internet; that is expected.</p>
+        <p className={styles.networkNote}>Connect with Bluetooth in Chrome on Windows or Android to keep this page online. Wi-Fi setup is also available for iPhone and other browsers.</p>
       </aside>
       <div className={styles.setupSteps}>
+        <BluetoothRecorderSetup onConnected={() => { void loadDevices(); }} />
+        <details className={styles.help}>
+        <summary>Use Wi-Fi setup instead</summary>
         <ol className={styles.stepNavigation} aria-label="Pairing progress">
           {stepLabels.map((label, index) => <li key={label}>
             <button type="button" aria-current={step === index ? "step" : undefined} disabled={index > step || (index > 0 && !pairing)} onClick={() => goToStep(index as PairingProgress["step"])}><span>{index + 1}</span>{label}</button>
@@ -291,6 +295,7 @@ function DeviceSession({
           {deviceNotice && <p className={styles.deviceNotice} role="status">{deviceNotice}</p>}
           {deviceError && <div className={styles.deviceError} role="alert"><p>{deviceError}</p><button className={styles.secondaryAction} type="button" disabled={checkingConnection} onClick={() => void loadDevices()}>{checkingConnection ? "Checking…" : "Retry connection check"}</button></div>}
         </div>
+        </details>
       </div>
     </section>;
   }

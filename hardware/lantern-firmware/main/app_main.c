@@ -21,6 +21,7 @@
 #include "lantern_agora.h"
 #include "lantern_audio.h"
 #include "lantern_board.h"
+#include "lantern_bluetooth.h"
 #if LANTERN_BATTERY_INSTALLED && defined(LANTERN_BATTERY_ADC_DIVIDER)
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
@@ -353,6 +354,12 @@ static void show_ready(void) {
   s_state = LOCAL_READY;
   s_recovery = RECOVERY_NONE;
   s_state_entered_at = xTaskGetTickCount();
+  char bluetooth_pin[7];
+  lantern_bluetooth_passkey(bluetooth_pin);
+  if (bluetooth_pin[0] && !network.paired) {
+    lantern_display_show(LANTERN_SCREEN_BLUETOOTH, bluetooth_pin);
+    return;
+  }
 #if LANTERN_HAS_TOUCHSCREEN
   if (network.paired) {
     s_ui_view = UI_SPLASH;
@@ -1625,7 +1632,14 @@ static int update_charging_eta(lantern_power_state_t power_state) {
 static void telemetry_task(void *argument) {
   (void)argument;
   unsigned seconds = 0;
+  char previous_pin[7] = {0};
   while (true) {
+    char pin[7];
+    lantern_bluetooth_passkey(pin);
+    if (strcmp(previous_pin, pin)) {
+      memcpy(previous_pin, pin, sizeof(pin));
+      s_network_update_pending = true;
+    }
     if (s_network_update_pending &&
         xSemaphoreTake(s_control_mutex, 0) == pdTRUE) {
       s_network_update_pending = false;

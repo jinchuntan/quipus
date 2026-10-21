@@ -52,4 +52,13 @@ config QUIPUS_UNSAFE_LOCAL_DEBUG
         Exposes private microphone test audio and unsigned OTA on the setup LAN.
         Keep disabled for all shared devices. USB flashing remains available.
 
+config QUIPUS_BLE_SETUP
+    bool "Bluetooth setup from Chrome"
+    depends on BT_NIMBLE_ENABLED
+    default y if LANTERN_BOARD_WAVESHARE_LCD_154
+    help
+        Pair an unowned recorder from a website without changing the phone's
+        Wi-Fi. Requires encrypted LE Secure Connections and a passkey shown
+        on the recorder. Bluetooth closes after cloud pairing.
+
 endmenu

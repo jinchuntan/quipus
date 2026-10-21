@@ -782,6 +782,12 @@ static void render_screen(const display_update_t *update) {
       wrapped_text(10, 61, LANTERN_DISPLAY_WIDTH - 20, detail, 16, foreground);
       outline_rect(72, 276, 96, 32, 1, foreground);
       centered_text(288, "BACK", 1, foreground);
+    } else if (screen == LANTERN_SCREEN_BLUETOOTH) {
+      centered_text(46, "PAIR BLUETOOTH", 2, foreground);
+      centered_text(90, "ENTER THIS PIN ON YOUR", 1, foreground);
+      centered_text(108, "PHONE OR COMPUTER", 1, foreground);
+      centered_text(146, detail, 3, green);
+      centered_text(202, "KEEP QUIPUS POWERED ON", 1, foreground);
     } else if (screen == LANTERN_SCREEN_SETUP) {
       const bool tall = LANTERN_DISPLAY_HEIGHT > 240;
       const bool connected = update->connectivity == LANTERN_CONNECTIVITY_WIFI_ONLY ||
