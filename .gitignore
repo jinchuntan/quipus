@@ -1,9 +1,82 @@
+# Installed dependencies and package-manager caches (all subprojects)
 node_modules/
+.npm/
+.npm-cache/
+.pnpm-store/
+.pnp.*
+.cache/
+
+# Next.js and generated web/worker builds
+.next/
+out/
 dist/
-coverage/
 .vercel/
+.supabase/.temp/
+/supabase/.temp/
+
+# Local environment and credentials; keep shareable templates
 .env
 .env.*
-!.env.example
+!.env*.example
+!.env*.template
+/.aws/
+
+# Test reports, temporary output and compiler caches
+coverage/
+test-results/
+playwright-report/
+blob-report/
+/tmp/
+*.tsbuildinfo
+
+# Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python caches and local virtual environments used by hardware scripts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# OS and local editor settings
 .DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+
+# Embedded firmware toolchains, generated SDKs, secrets and factory backups
+/.tools/
+/.tmp-*/
+/hardware/firmware/build/
+/hardware/firmware/.ccache/
+/hardware/firmware/components/agora_iot_sdk/
+/hardware/firmware/main/secrets.h
+/hardware/firmware/sdkconfig
+/hardware/lantern-firmware/build/
+/hardware/lantern-firmware/build-v2/
+/hardware/lantern-firmware/.ccache/
+/hardware/lantern-firmware/managed_components/
+/hardware/lantern-firmware/sdkconfig
+/hardware/lantern-firmware/sdkconfig.v2
+/hardware/lantern-firmware/build-waveshare/
+/hardware/lantern-firmware/sdkconfig.waveshare
+/hardware/lantern-firmware/sdkconfig.waveshare.old
+/hardware/backups/
+
+# USB phone microphone firmware build variant
+/hardware/lantern-firmware/build-phone/
+/hardware/lantern-firmware/sdkconfig.phone
+/hardware/lantern-firmware/sdkconfig.phone.old
+
+# Generated, advisory-only scanner triage artifacts
+/security-review/
+
+# Reproducible local hardware handoff binaries (rebuild from source)
+/output/quipus-upgrade/hardware/

@@ -1,0 +1,42 @@
+idf_component_register(
+  SRCS
+    "app_main.c"
+    "freertos_compat.c"
+    "lantern_agora.c"
+    "lantern_audio.c"
+    "lantern_board.c"
+    "lantern_board_io.c"
+    "lantern_display.c"
+    "lantern_network.c"
+    "quipus_network_policy.c"
+    "quipus_setup_form.c"
+    "quipus_phone_audio.c"
+    "quipus_archive.c"
+    "quipus_usb_protocol.c"
+    "lantern_sd.c"
+    "lantern_storage.c"
+    "lantern_transcript.c"
+    "lantern_wake.c"
+  INCLUDE_DIRS "."
+  REQUIRES
+    agora_iot_sdk
+    app_update
+    driver
+    esp_adc
+    esp_event
+    esp_http_client
+    esp_http_server
+    esp_lcd
+    esp_netif
+    esp_timer
+    fatfs
+    esp_wifi
+    espressif__esp-sr
+    espressif__esp_codec_dev
+    json
+    mbedtls
+    nvs_flash
+    sdmmc
+)
+
+target_link_libraries(${COMPONENT_LIB} INTERFACE "-u xTaskCreateRestrictedPinnedToCore")

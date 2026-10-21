@@ -1,31 +1,106 @@
 {
   "name": "quipus",
+  "version": "0.1.0",
   "private": true,
-  "version": "1.0.0",
-  "type": "module",
   "engines": {
-    "node": ">=22.12.0 <25"
+    "node": "22.x"
   },
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "test": "vitest run"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "worker:typecheck": "npm --prefix worker run typecheck",
+    "worker:test": "npm --prefix worker run test",
+    "worker:build": "npm --prefix worker run build",
+    "check": "npm run lint && npm run typecheck && npm run worker:typecheck && npm run recording-worker:typecheck && npm run test && npm run worker:test && npm run recording-worker:test && npm run build && npm run worker:build && npm run recording-worker:build",
+    "lint": "npm run lint:css && npm run format:css:check && npm run lint:js",
+    "lint:js": "eslint app components lib tests recording-worker proxy.ts next.config.mjs eslint.config.mjs --max-warnings 0",
+    "lint:css": "stylelint \"{app,components}/**/*.css\"",
+    "lint:fix": "npm run lint:js -- --fix && npm run lint:css -- --fix && npm run format:css",
+    "format:css": "prettier --write \"{app,components}/**/*.css\"",
+    "format:css:check": "prettier --check \"{app,components}/**/*.css\"",
+    "recording-worker:build": "node recording-worker/build.mjs",
+    "recording-worker:typecheck": "tsc -p recording-worker/tsconfig.json --noEmit",
+    "recording-worker:test": "tsx --test recording-worker/tests/*.test.ts"
   },
   "dependencies": {
-    "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.106.2",
+    "@upstash/redis": "^1.38.0",
+    "agora-rtc-sdk-ng": "^4.24.6",
+    "agora-token": "^2.0.5",
+    "date-fns": "^4.1.0",
+    "googleapis": "^176.0.0",
+    "ioredis": "^5.7.0",
+    "lucide-react": "^0.468.0",
+    "motion": "^12.42.2",
+    "next": "16.3.8",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "three": "^0.186.1",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
-    "@vitejs/plugin-react": "6.1.2",
-    "@testing-library/react": "16.3.3",
-    "@testing-library/user-event": "14.6.8",
-    "@testing-library/jest-dom": "7.0.1",
-    "jsdom": "30.1.3",
-    "typescript": "7.0.2",
-    "vite": "8.3.4",
-    "vitest": "5.0.5"
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "@types/three": "^0.186.0",
+    "esbuild": "^0.28.2",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.8",
+    "prettier": "3.9.10",
+    "stylelint": "17.16.0",
+    "stylelint-config-recommended": "18.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  },
+  "stylelint": {
+    "extends": [
+      "stylelint-config-recommended"
+    ],
+    "rules": {
+      "selector-pseudo-class-no-unknown": [
+        true,
+        {
+          "ignorePseudoClasses": [
+            "global",
+            "local"
+          ]
+        }
+      ],
+      "property-no-unknown": [
+        true,
+        {
+          "ignoreProperties": [
+            "composes"
+          ]
+        }
+      ],
+      "no-descending-specificity": null
+    },
+    "overrides": [
+      {
+        "files": [
+          "components/workspace/client-history.module.css",
+          "components/workspace/delivery.module.css",
+          "components/workspace/lantern-device.module.css",
+          "components/workspace/recording-progress.module.css",
+          "components/workspace/relay-panel.module.css",
+          "components/workspace/setup.module.css"
+        ],
+        "rules": {
+          "no-duplicate-selectors": null
+        }
+      }
+    ]
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "useTabs": false,
+    "printWidth": 100,
+    "endOfLine": "lf"
   }
 }
