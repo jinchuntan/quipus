@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
+from urllib.parse import urlsplit
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +29,11 @@ def package(output: Path, profile: str | None = None) -> Path:
             config = json.loads((build / "config/sdkconfig.json").read_text())
             if not config.get("LANTERN_BOARD_WAVESHARE_LCD_154"):
                 raise ValueError("Waveshare package requires a Waveshare board build")
+            backend = config["LANTERN_API_BASE_URL"]
+            origin = urlsplit(backend)
+            if (origin.scheme != "https" or not origin.hostname or origin.path or
+                    origin.query or origin.fragment or origin.username or origin.password):
+                raise ValueError("Backend must be an HTTPS origin without credentials, path or trailing slash")
         metadata = json.loads((build / "flasher_args.json").read_text())
         images = metadata["flash_files"]
         if set(images.values()) != EXPECTED_IMAGES:
@@ -45,6 +51,8 @@ def package(output: Path, profile: str | None = None) -> Path:
             "flashSettings": metadata["flash_settings"], "images": images,
             "phoneUsbAudio": name == "phone-usb",
         }
+        if name == "waveshare":
+            profiles[name]["apiBaseUrl"] = backend
     if profile is None or profile == "phone-usb":
         apk = ROOT / "mobile/android/app/build/outputs/apk/debug/app-debug.apk"
         entries["android/quipus-usb-microphone-debug.apk"] = apk.read_bytes()
@@ -82,9 +90,10 @@ manifest.json contains SHA-256 and byte counts for every payload file.
 """
     if profile == "waveshare":
         entries["WAVESHARE.md"] = (ROOT / "hardware/lantern-firmware/WAVESHARE.md").read_bytes()
-        entries["README.txt"] = b"""QUIPUS - WAVESHARE ESP32-S3-LCD-1.54 (NON-TOUCH)
+        entries["README.txt"] = f"""QUIPUS - WAVESHARE ESP32-S3-LCD-1.54 (NON-TOUCH)
 
 ESP-IDF 5.2.3 build. USB-powered default; battery percentage disabled.
+Backend and pairing dashboard: {backend}/dashboard/devices
 Only install on the Waveshare ESP32-S3-LCD-1.54, 16 MB flash / 8 MB PSRAM.
 All five required images are included, including the Computer wake-word model.
 See WAVESHARE.md for pairing, PLUS controls, microSD requirements and sources.
@@ -102,8 +111,8 @@ If auto-reset fails, hold BOOT while reconnecting USB, release BOOT, then replac
 Full flashing replaces the factory application. No credentials, SD keys or NVS
 backup are included. No board was flashed or physically tested during this work.
 Complete the physical acceptance checks in WAVESHARE.md before recording meetings.
-manifest.json records the SHA-256 checksum and byte count of each payload file.
-"""
+manifest.json records the backend URL, SHA-256 checksum and byte count of each payload file.
+""".encode("utf-8")
     manifest = {
         "createdAt": datetime.now(timezone.utc).isoformat(),
         "purpose": "local-build-handoff-no-flash-no-deploy",

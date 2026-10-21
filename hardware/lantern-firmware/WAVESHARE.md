@@ -34,6 +34,12 @@ pairing and reports work without one. Cards are never formatted by Quipus.
 
 ## Build and flash
 
+The Waveshare defaults target **https://cordra.vercel.app**. Device API calls
+and the setup portal's return link use this same origin. For another deployment,
+set **Lantern hardware → Quipus backend URL** in `menuconfig`, then rebuild.
+An existing `sdkconfig.waveshare` keeps saved settings; editing the defaults
+file alone does not override an already configured URL.
+
 Use Quipus's **ESP-IDF 5.2.3**, pinned `esp_codec_dev` 1.5.11 and ESP-SR 2.0.1.
 Waveshare's current examples use IDF 5.5.1; this integration implements the
 hardware mapping through Quipus's existing 5.2 APIs and Agora integration.
@@ -71,9 +77,10 @@ charge-time estimates are not assumed for an optional accessory.
 
 ## Pair and use
 
-1. Start on the Quipus dashboard's **Devices** page and create a pairing code.
+1. Sign in at **https://cordra.vercel.app/dashboard/devices** and create a
+   pairing code. Use the deployment configured in your firmware if you changed it.
    Join `Quipus-XXXX`, password `lanternsetup`, then return to that dashboard
-   tab and choose **Open recorder setup**. Firmware 0.9.2 fills in the code;
+   tab and choose **Open recorder setup**. Firmware 0.9.2 and later fill in the code;
    enter 2.4 GHz Wi-Fi/hotspot details and save. Reconnect the phone/laptop to
    normal internet; setup returns to the Quipus website when it is reachable.
    A **Return to Quipus** link remains available. The manual fallback is
@@ -98,6 +105,8 @@ the embedded HTML/JavaScript. The portal browser test also covers fragment
 handoff, offline waiting and online return for both confirmation pages. On
 Linux, set `QUIPUS_CHROMIUM_EXECUTABLE` to an installed Chromium binary, then
 run `node hardware/lantern-firmware/tests/setup-portal.browser.mjs`.
+Set `QUIPUS_WEB_ORIGIN=https://cordra.vercel.app` to test the Waveshare return
+destination; otherwise the browser harness uses the original backend fallback.
 
 Package the compiled image from the repository root:
 

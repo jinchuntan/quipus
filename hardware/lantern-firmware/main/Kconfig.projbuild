@@ -19,6 +19,14 @@ config LANTERN_BOARD_WAVESHARE_LCD_154
 
 endchoice
 
+config LANTERN_API_BASE_URL
+    string "Quipus backend URL"
+    default "https://quipus-sales-rep-assistant.vercel.app"
+    help
+        Stable HTTPS origin for device APIs and the setup portal's return link.
+        Use the same deployment that issues the device's pairing code, without
+        a trailing slash or path. Cloud API keys belong on the server only.
+
 config LANTERN_WAVESHARE_BATTERY_INSTALLED
     bool "Waveshare lithium battery installed"
     depends on LANTERN_BOARD_WAVESHARE_LCD_154

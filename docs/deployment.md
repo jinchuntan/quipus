@@ -65,9 +65,12 @@ settings. Git copying does not copy environment variables, accounts, databases,
 storage objects or OAuth permissions. Keep server keys in Vercel environment
 variables; never commit them or paste them into chat.
 
-The firmware currently calls `https://quipus-sales-rep-assistant.vercel.app`.
-For a different backend, update `LANTERN_API_BASE_URL`, rebuild and flash the
-firmware. A recorder must claim a pairing code issued by the backend it calls.
+The Waveshare firmware defaults to `https://cordra.vercel.app`; the original
+and V2 profiles retain `https://quipus-sales-rep-assistant.vercel.app`.
+For another backend, set **Lantern hardware → Quipus backend URL** in ESP-IDF
+`menuconfig` (`CONFIG_LANTERN_API_BASE_URL`), then rebuild and flash the firmware.
+An existing sdkconfig retains saved settings rather than applying changed
+defaults. A recorder must claim a pairing code issued by the backend it calls.
 
 References: [Vercel framework/output overrides](https://vercel.com/docs/project-configuration/vercel-json)
 and [Next.js function durations](https://vercel.com/docs/functions/configuring-functions/duration).

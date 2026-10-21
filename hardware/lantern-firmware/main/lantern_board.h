@@ -4,8 +4,13 @@
 
 #include "sdkconfig.h"
 
-#define LANTERN_FIRMWARE_VERSION "0.9.2-quipus"
+#define LANTERN_FIRMWARE_VERSION "0.9.3-quipus"
+#ifdef CONFIG_LANTERN_API_BASE_URL
+#define LANTERN_API_BASE_URL CONFIG_LANTERN_API_BASE_URL
+#else
+// Native board tests do not load ESP-IDF's generated sdkconfig.
 #define LANTERN_API_BASE_URL "https://quipus-sales-rep-assistant.vercel.app"
+#endif
 
 #if CONFIG_LANTERN_BOARD_ZHENGCHEN_M1307
 #include "boards/lantern_original.h"

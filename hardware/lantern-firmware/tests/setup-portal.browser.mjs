@@ -11,7 +11,7 @@ const destination = path.join(repository, "output", "wifi-setup");
 await mkdir(destination, { recursive: true });
 const profile = await mkdtemp(path.join(destination, "chromium-"));
 const board = await readFile(path.join(firmware, "main", "lantern_board.h"), "utf8");
-const website = board.match(/#define LANTERN_API_BASE_URL "([^"]+)"/)[1];
+const website = process.env.QUIPUS_WEB_ORIGIN || board.match(/#define LANTERN_API_BASE_URL "([^"]+)"/)[1];
 const returnScript = await readFile(path.join(firmware, "main", "setup-return.js"), "utf8");
 async function render(name) {
   return (await readFile(path.join(firmware, "main", name), "utf8"))
