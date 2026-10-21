@@ -44,7 +44,11 @@ preview hostname as the permanent application or firmware API origin.
 
 For a fresh Supabase project, apply **all** SQL migrations in
 `supabase/migrations/`, in numerical order (`001` through `019` at the time of
-this change). For an existing project, apply only migrations not already
+this change). For a single SQL Editor action, use the generated
+[fresh-project setup bundle](../supabase/setup/README.md) instead of copying each
+migration separately. Keep **Enable Data API** and **Automatically expose new
+tables** checked when creating a project for these migrations.
+For an existing project, apply only migrations not already
 recorded as applied. Never recreate or reset a co-founder's database to deploy
 this copy. The migrations include the private recording bucket, policies,
 device pairing, archive keys and safe device transfers.
