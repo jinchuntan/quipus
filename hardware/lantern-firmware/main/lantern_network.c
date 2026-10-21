@@ -1183,6 +1183,11 @@ esp_err_t lantern_network_start(lantern_config_t *config,
   s_status.wifi_rssi = -127;
   snprintf(s_status.saved_ssid, sizeof(s_status.saved_ssid), "%s",
            config->wifi_ssid);
+  // The controller needs contiguous internal/DMA RAM. Allocate it before Wi-Fi
+  // buffers fragment that heap; discoverability stays off until the portal is
+  // ready. A failure keeps the existing Wi-Fi setup fallback available.
+  if (!s_status.paired)
+    ESP_ERROR_CHECK_WITHOUT_ABORT(lantern_bluetooth_prepare());
   s_wifi_events = xEventGroupCreate();
   if (!s_wifi_events)
     return ESP_ERR_NO_MEM;

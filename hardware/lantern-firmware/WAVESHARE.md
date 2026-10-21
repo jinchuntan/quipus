@@ -80,7 +80,9 @@ charge-time estimates are not assumed for an optional accessory.
 
 ### Bluetooth setup (Chrome on Windows or Android)
 
-1. Flash all five images from firmware **0.10.0 or later** once through USB.
+1. Flash all five images from firmware **0.10.1 or later** once through USB.
+   Version 0.10.1 fixes an internal-RAM allocation failure that prevented the
+   Bluetooth controller from starting on the physical Waveshare board.
    Keep the recorder unpaired and powered on, with Bluetooth enabled on the
    phone/computer. Bluetooth setup advertises as `Quipus-BT-XXXX`.
 2. Sign in at **https://cordra.vercel.app/dashboard/devices** in Chrome and

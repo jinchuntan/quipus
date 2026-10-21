@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "cJSON.h"
+#include "esp_heap_caps.h"
+#include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_random.h"
 #include "esp_system.h"
@@ -31,6 +33,7 @@ static const ble_uuid128_t s_service = QUIPUS_UUID(1);
 static const ble_uuid128_t s_info = QUIPUS_UUID(2);
 static const ble_uuid128_t s_control = QUIPUS_UUID(3);
 static const ble_uuid128_t s_status_uuid = QUIPUS_UUID(4);
+static const char *TAG = "quipus_bluetooth";
 static bool s_initialized, s_synced, s_available;
 static uint8_t s_address_type;
 static uint16_t s_connection = BLE_HS_CONN_HANDLE_NONE;
@@ -45,6 +48,13 @@ typedef struct { bool scan; char body[QUIPUS_BLE_SETUP_MAX + 1]; } setup_job_t;
 
 void ble_store_config_init(void);
 static int gap_event(struct ble_gap_event *event, void *argument);
+
+static void log_memory(const char *stage) {
+  ESP_LOGI(TAG, "%s; internal_free=%u largest_internal=%u psram_free=%u", stage,
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
+           (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+}
 
 static void state(const char *value, const char *error) {
   portENTER_CRITICAL(&s_lock);
@@ -233,16 +243,29 @@ static void advertise(void) {
   fields.uuids128 = (ble_uuid128_t *)&s_service;
   fields.num_uuids128 = 1;
   fields.uuids128_is_complete = 1;
-  if (ble_gap_adv_set_fields(&fields) != 0) return;
+  int result = ble_gap_adv_set_fields(&fields);
+  if (result != 0) {
+    ESP_LOGE(TAG, "advertising service configuration failed: %d", result);
+    return;
+  }
   memset(&fields, 0, sizeof(fields));
   fields.name = (uint8_t *)ble_svc_gap_device_name();
   fields.name_len = strlen((char *)fields.name);
   fields.name_is_complete = 1;
-  if (ble_gap_adv_rsp_set_fields(&fields) != 0) return;
+  result = ble_gap_adv_rsp_set_fields(&fields);
+  if (result != 0) {
+    ESP_LOGE(TAG, "advertising name configuration failed: %d", result);
+    return;
+  }
   struct ble_gap_adv_params params = {0};
   params.conn_mode = BLE_GAP_CONN_MODE_UND;
   params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-  ble_gap_adv_start(s_address_type, NULL, BLE_HS_FOREVER, &params, gap_event, NULL);
+  result = ble_gap_adv_start(s_address_type, NULL, BLE_HS_FOREVER, &params, gap_event, NULL);
+  if (result != 0) ESP_LOGE(TAG, "Bluetooth advertising failed: %d", result);
+  else {
+    ESP_LOGI(TAG, "Bluetooth setup advertising as %s", ble_svc_gap_device_name());
+    log_memory("advertising ready");
+  }
 }
 
 static int gap_event(struct ble_gap_event *event, void *argument) {
@@ -296,11 +319,25 @@ static int gap_event(struct ble_gap_event *event, void *argument) {
 }
 
 static void synced(void) {
-  if (ble_hs_util_ensure_addr(0) == 0 &&
-      ble_hs_id_infer_auto(0, &s_address_type) == 0) {
-    s_synced = true;
-    advertise();
+  int result = ble_hs_util_ensure_addr(0);
+  if (result == 0) result = ble_hs_id_infer_auto(0, &s_address_type);
+  if (result != 0) {
+    ESP_LOGE(TAG, "Bluetooth address initialization failed: %d", result);
+    return;
   }
+  s_synced = true;
+  ESP_LOGI(TAG, "Bluetooth host synchronized");
+  advertise();
+}
+
+static void host_reset(int reason) {
+  s_synced = false;
+  s_connection = BLE_HS_CONN_HANDLE_NONE;
+  quipus_ble_transfer_clear(&s_transfer);
+  portENTER_CRITICAL(&s_lock);
+  memset(s_pin, 0, sizeof(s_pin));
+  portEXIT_CRITICAL(&s_lock);
+  ESP_LOGE(TAG, "Bluetooth host reset: %d; waiting for synchronization", reason);
 }
 
 static void host_task(void *argument) {
@@ -309,10 +346,9 @@ static void host_task(void *argument) {
   nimble_port_freertos_deinit();
 }
 
-esp_err_t lantern_bluetooth_start(void) {
-  if (!lantern_network_bluetooth_allowed()) return ESP_ERR_INVALID_STATE;
-  s_available = true;
-  if (s_initialized) { advertise(); return ESP_OK; }
+esp_err_t lantern_bluetooth_prepare(void) {
+  if (s_initialized) return ESP_OK;
+  log_memory("reserving Bluetooth memory before Wi-Fi");
   if (!s_jobs) {
     s_jobs = xQueueCreate(1, sizeof(setup_job_t *));
     if (!s_jobs) return ESP_ERR_NO_MEM;
@@ -321,7 +357,12 @@ esp_err_t lantern_bluetooth_start(void) {
     }
   }
   esp_err_t result = nimble_port_init();
-  if (result != ESP_OK) return result;
+  if (result != ESP_OK) {
+    ESP_LOGE(TAG, "Bluetooth initialization failed: %s", esp_err_to_name(result));
+    log_memory("Bluetooth initialization failed");
+    return result;
+  }
+  ble_hs_cfg.reset_cb = host_reset;
   ble_hs_cfg.sync_cb = synced;
   ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
   ble_hs_cfg.sm_io_cap = BLE_HS_IO_DISPLAY_ONLY;
@@ -336,13 +377,27 @@ esp_err_t lantern_bluetooth_start(void) {
   esp_read_mac(mac, ESP_MAC_BT);
   char name[24];
   snprintf(name, sizeof(name), "Quipus-BT-%02X%02X", mac[4], mac[5]);
-  ble_svc_gap_device_name_set(name);
-  if (ble_gatts_count_cfg(s_services) != 0 || ble_gatts_add_svcs(s_services) != 0) {
-    nimble_port_deinit(); return ESP_FAIL;
+  int host_result = ble_svc_gap_device_name_set(name);
+  if (host_result == 0) host_result = ble_gatts_count_cfg(s_services);
+  if (host_result == 0) host_result = ble_gatts_add_svcs(s_services);
+  if (host_result != 0) {
+    ESP_LOGE(TAG, "Bluetooth service initialization failed: %d", host_result);
+    nimble_port_deinit();
+    return ESP_FAIL;
   }
   ble_store_config_init();
   s_initialized = true;
   nimble_port_freertos_init(host_task);
+  log_memory("Bluetooth controller and host initialized");
+  return ESP_OK;
+}
+
+esp_err_t lantern_bluetooth_start(void) {
+  if (!lantern_network_bluetooth_allowed()) return ESP_ERR_INVALID_STATE;
+  esp_err_t result = lantern_bluetooth_prepare();
+  if (result != ESP_OK) return result;
+  s_available = true;
+  advertise();
   return ESP_OK;
 }
 
@@ -363,6 +418,7 @@ void lantern_bluetooth_close(void) {
   }
 }
 #else
+esp_err_t lantern_bluetooth_prepare(void) { return ESP_OK; }
 esp_err_t lantern_bluetooth_start(void) { return ESP_OK; }
 void lantern_bluetooth_close(void) {}
 void lantern_bluetooth_passkey(char output[7]) { output[0] = '\0'; }

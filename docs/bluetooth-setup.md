@@ -8,10 +8,39 @@ is generated automatically. Bluetooth does not replace the recorder's Wi-Fi
 for recording uploads, speech or Agora. iPhone Safari uses the existing local
 Wi-Fi setup, available under **Use Wi-Fi setup instead**.
 
-Firmware 0.10.0 must be installed once through USB; opening the new website
+Firmware **0.10.1 or later** must be installed once through USB; opening the new website
 cannot enable Bluetooth in an older image. Existing sdkconfig files must have
 NimBLE and `CONFIG_QUIPUS_BLE_SETUP` enabled; changed defaults do not override
 saved configurations. The packaged manifest reports `bluetoothSetup: true`.
+
+### Internal-memory startup fix (0.10.1)
+
+A physical Waveshare boot on 0.10.0 confirmed `BLE_INIT: Malloc failed` and
+`ESP_ERR_NO_MEM` while about 6 MB of PSRAM remained free. The Bluetooth
+controller requires internal/DMA-capable memory, so total free heap is not a
+useful measure of whether it can start. Version 0.10.1 reserves the controller
+and host before Wi-Fi initialization, without advertising until unpaired setup
+is active. The Waveshare profile prefers PSRAM for eligible Wi-Fi/lwIP buffers,
+uses six static RX buffers with a matching block-ack window, eight static TX
+buffers, and two controller activities for its single advertiser/connection.
+Generic allocations over 1 KiB prefer PSRAM. DMA buffers and task stacks retain
+their required internal memory. Optional Wi-Fi IRAM speed optimizations are
+disabled to recover more internal SRAM, trading peak Wi-Fi throughput for
+controller/DMA headroom. Bluetooth is still released after cloud pairing.
+
+When rebuilding an existing checkout, also update its saved `sdkconfig.waveshare`:
+`CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y`,
+`CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=1024`,
+`CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=6`, `CONFIG_ESP_WIFI_RX_BA_WIN=6`,
+`CONFIG_ESP_WIFI_STATIC_TX_BUFFER_NUM=8`, and `CONFIG_BT_CTRL_BLE_MAX_ACT=2`.
+Disable `CONFIG_ESP_WIFI_IRAM_OPT` and `CONFIG_ESP_WIFI_RX_IRAM_OPT` as well.
+New defaults do not override previously saved values.
+
+Serial logs now report internal free space and the largest internal block during
+Bluetooth initialization and in health reports. Successful discovery logs
+`Bluetooth setup advertising as Quipus-BT-XXXX`; address, service, and advertising
+failures are reported explicitly. No PIN, Wi-Fi password or cloud secret is logged.
+Physical discovery and pairing must still be checked on the updated image.
 
 ## Security and ownership
 

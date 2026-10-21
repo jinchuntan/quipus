@@ -1691,11 +1691,15 @@ static void telemetry_task(void *argument) {
     if (++seconds % 5 == 0) {
       ESP_LOGI(TAG,
                "health battery=%d%% charging=%d mic_level=%u heap=%u psram=%u "
+               "internal_free=%u largest_internal=%u "
                "state=%d",
                s_battery_level, power_state == LANTERN_POWER_CHARGING,
                (unsigned)lantern_audio_level(),
                (unsigned)esp_get_free_heap_size(),
-               (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM), s_state);
+               (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+               (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
+               (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT),
+               s_state);
     }
     if (seconds % 15 == 0 && s_state == LOCAL_READY &&
         xSemaphoreTake(s_control_mutex, 0) == pdTRUE) {
