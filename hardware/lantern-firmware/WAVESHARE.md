@@ -71,9 +71,13 @@ charge-time estimates are not assumed for an optional accessory.
 
 ## Pair and use
 
-1. Connect to `Quipus-XXXX`, password `lanternsetup`, and open
-   `http://192.168.4.1`. Enter 2.4 GHz Wi-Fi/hotspot details and a Quipus
-   dashboard pairing code. Reconnect the phone/laptop to normal internet.
+1. Start on the Quipus dashboard's **Devices** page and create a pairing code.
+   Join `Quipus-XXXX`, password `lanternsetup`, then return to that dashboard
+   tab and choose **Open recorder setup**. Firmware 0.9.2 fills in the code;
+   enter 2.4 GHz Wi-Fi/hotspot details and save. Reconnect the phone/laptop to
+   normal internet; setup returns to the Quipus website when it is reachable.
+   A **Return to Quipus** link remains available. The manual fallback is
+   `http://192.168.4.1/` plus the pairing code shown on the dashboard.
 2. Short-press **PLUS** to request recording, then follow the consent prompt.
    Press PLUS again to stop. Hold PLUS for 1.2 seconds while ready for a daily
    report. PLUS also interrupts report playback.
@@ -88,6 +92,12 @@ charge-time estimates are not assumed for an optional accessory.
 
 Run `python3 scripts/test-firmware-boards.py` from the repository root for
 portable board selection and audio channel regressions.
+
+Run `python3 hardware/lantern-firmware/generate-setup-portal.py --check` to check
+the embedded HTML/JavaScript. The portal browser test also covers fragment
+handoff, offline waiting and online return for both confirmation pages. On
+Linux, set `QUIPUS_CHROMIUM_EXECUTABLE` to an installed Chromium binary, then
+run `node hardware/lantern-firmware/tests/setup-portal.browser.mjs`.
 
 Package the compiled image from the repository root:
 

@@ -9,8 +9,9 @@ merged using the shared history.
 The previous `jinchuntan/quipus` frontend prototype remains available at
 [backup/pre-nathan-import-20261021](https://github.com/jinchuntan/quipus/tree/backup/pre-nathan-import-20261021),
 commit `1fa53c5d7546d3cabf105f55cc2665c481a65b8f`. It is also retained in
-the import's commit history. The import is prepared on
-`sync/nathan-waveshare-20261021` for review before replacing the default branch.
+the import's commit history. The import was merged through PR #2; `main` now
+uses Nathan's application. The former Vite prototype is separate from the
+active application.
 
 ## Changes after the upstream snapshot
 
@@ -31,12 +32,25 @@ URL before testing account pairing.
 
 ## iPhone setup
 
-The existing web dashboard can be opened on an iPhone. For local device setup,
-join the recorder's `Quipus-XXXX` Wi-Fi network (password `lanternsetup`), stay
-connected when iOS reports no internet, and open `http://192.168.4.1/`.
-Enter a fresh dashboard pairing code and the details of an internet-connected
-2.4 GHz Wi-Fi network. Then return the iPhone to its normal internet connection
-and verify that the recorder appears in the dashboard.
+Start in the web dashboard's Devices page on the iPhone and create a pairing
+code. Join the recorder's `Quipus-XXXX` Wi-Fi network (password `lanternsetup`),
+stay connected when iOS reports no internet, return to the dashboard tab and
+choose **Open recorder setup**. Firmware 0.9.2 fills the code from the link's
+fragment and immediately removes the fragment from the browser address. The
+code is not sent as an HTTP query or included in cloud connectivity checks.
+
+Enter the details of an internet-connected 2.4 GHz Wi-Fi network and save. The
+recorder restarts; reconnect the iPhone to normal Wi-Fi or mobile data. Setup
+checks the existing Quipus website for up to two minutes and returns to its
+Devices page when reachable. **Return to Quipus** also works as a manual link.
+The dashboard confirms the device's actual account connection; saving settings
+alone does not certify pairing or upload success. If an older firmware is
+installed, enter the dashboard code manually at `http://192.168.4.1/`.
+
+The local address belongs to the recorder and is still used for the initial
+credential transfer. It cannot be replaced with a cloud redirect before setup:
+the recorder needs the local Wi-Fi settings to contact that cloud service.
+The website does not submit a Wi-Fi password through the internet.
 
 Bluetooth is disabled in this firmware. Safari and Chrome on iPhone do not
 provide native Web Bluetooth access; adding a website to the Home Screen does
@@ -51,7 +65,7 @@ Browser references:
 
 ## Syncing with the co-founder's repository
 
-After merging this import into the working branch, configure the remotes once:
+Configure the remotes once:
 
 ```sh
 git remote -v
