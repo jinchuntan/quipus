@@ -1,0 +1,97 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+
+import {
+  createPairingCode,
+  hashLanternSecret,
+} from "@/lib/lantern-device-auth";
+import {
+  requireAuthenticatedSession,
+  requireProductionPersistence,
+} from "@/lib/api-security";
+import {
+  getServerSupabase,
+  resolveWorkspaceUserId,
+} from "@/lib/supabase/server";
+import {
+  isLanternSchemaOutdated,
+  LANTERN_SCHEMA_OUTDATED,
+  lanternSchemaUpgradeMessage,
+} from "@/lib/supabase/lantern-schema";
+
+export const runtime = "nodejs";
+
+const requestSchema = z
+  .object({
+    name: z.string().trim().min(1).max(100).default("Nathan's Quipus"),
+  })
+  .strict();
+
+export async function POST(request: Request) {
+  const authError = await requireAuthenticatedSession();
+  if (authError) return authError;
+  const client = getServerSupabase();
+  const readinessError = requireProductionPersistence(
+    Boolean(client),
+    "Supabase is required to pair Quipus.",
+  );
+  if (readinessError) return readinessError;
+
+  try {
+    const input = requestSchema.parse(await request.json().catch(() => ({})));
+    if (!client) {
+      return NextResponse.json(
+        { error: "Connect Supabase before pairing Quipus." },
+        { status: 503, headers: { "cache-control": "no-store" } },
+      );
+    }
+    const userId = await resolveWorkspaceUserId(client);
+    if (!userId) throw new Error("The Quipus workspace is unavailable.");
+
+    const code = createPairingCode();
+    const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
+    const { data, error } = await client
+      .from("device_pairings")
+      .insert({
+        user_id: userId,
+        code_hash: hashLanternSecret(code),
+        device_name: input.name,
+        expires_at: expiresAt,
+      })
+      .select("id,expires_at")
+      .single();
+    if (error) throw error;
+    if (!data) throw new Error("Pairing could not begin.");
+
+    return NextResponse.json(
+      {
+        pairing: {
+          id: data.id,
+          code: `${code.slice(0, 5)}-${code.slice(5)}`,
+          expiresAt: data.expires_at,
+        },
+      },
+      { status: 201, headers: { "cache-control": "no-store" } },
+    );
+  } catch (error) {
+    console.error("[device-pairing]", error);
+    const schemaOutdated = isLanternSchemaOutdated(error);
+    return NextResponse.json(
+      {
+        ...(schemaOutdated ? { code: LANTERN_SCHEMA_OUTDATED } : {}),
+        error:
+          schemaOutdated
+            ? lanternSchemaUpgradeMessage
+            : error instanceof z.ZodError
+            ? "Quipus pairing details are invalid."
+            : error instanceof Error
+              ? error.message
+              : "Pairing could not begin.",
+      },
+      {
+        status: schemaOutdated ? 503 : error instanceof z.ZodError ? 400 : 500,
+        headers: { "cache-control": "no-store" },
+      },
+    );
+  }
+}
