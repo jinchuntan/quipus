@@ -33,6 +33,9 @@ authenticated live workspace.
 
 ## Configure a live workspace
 
+See [deployment and service dependencies](docs/deployment.md) for Vercel setup,
+required versus optional integrations, and migration from the earlier prototype.
+
 Copy `.env.example` to `.env.local` and configure the paths you want to exercise.
 Keep server credentials out of `NEXT_PUBLIC_` variables.
 
