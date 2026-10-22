@@ -80,3 +80,6 @@ Desktop.ini
 
 # Reproducible local hardware handoff binaries (rebuild from source)
 /output/quipus-upgrade/hardware/
+
+# Temporary dependency audit reports
+/tmp-upgrade-*.json
