@@ -35,6 +35,8 @@ static adc_cali_handle_t s_battery_calibration;
 #include "lantern_transcript.h"
 #include "lantern_wake.h"
 #include "quipus_phone_audio.h"
+#include "quipus_button_tap.h"
+#include "quipus_volume.h"
 
 typedef enum {
   LOCAL_READY,
@@ -1563,7 +1565,35 @@ static void button_task(void *argument) {
 static void report_interrupt_task(void *argument) {
   (void)argument;
   unsigned pressed_samples = 0;
+#if CONFIG_LANTERN_BOARD_WAVESHARE_LCD_154
+  quipus_button_tap_t volume_down = {0}, volume_up = {0};
+  // button_task ignores the first 800 ms after GPIO setup. Do the same here
+  // so a held power-on/boot button cannot become a volume change.
+  while (!s_controls_ready) vTaskDelay(pdMS_TO_TICKS(30));
+  vTaskDelay(pdMS_TO_TICKS(800));
+  volume_down.suppressed = volume_up.suppressed = true;
+  volume_down.pressed = gpio_get_level(LANTERN_POWER_BUTTON_GPIO) == 0;
+  volume_up.pressed = gpio_get_level(LANTERN_BUTTON_UP_GPIO) == 0;
+#endif
   while (true) {
+#if CONFIG_LANTERN_BOARD_WAVESHARE_LCD_154
+    // This task remains responsive while a cloud report owns s_control_mutex.
+    // PWR/BOOT taps adjust playback; PLUS and multi-button chords take priority.
+    uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
+    bool main = gpio_get_level(LANTERN_BUTTON_MAIN_GPIO) == 0;
+    bool power = gpio_get_level(LANTERN_POWER_BUTTON_GPIO) == 0;
+    bool boot = gpio_get_level(LANTERN_BUTTON_UP_GPIO) == 0;
+    bool quieter = quipus_button_tap_update(&volume_down, power,
+                                           main || boot, now_ms);
+    bool louder = quipus_button_tap_update(&volume_up, boot,
+                                          main || power, now_ms);
+    if (quieter || louder) {
+      unsigned volume = lantern_audio_adjust_volume(
+          quieter ? -QUIPUS_VOLUME_STEP : QUIPUS_VOLUME_STEP);
+      lantern_display_set_volume(volume);
+      ESP_LOGI(TAG, "speaker volume %u%%", volume);
+    }
+#endif
     if (s_controls_ready && lantern_network_report_playing() &&
         lantern_audio_is_speaker_active()) {
       bool pressed = false;
@@ -1772,6 +1802,9 @@ void app_main(void) {
   s_summary_retry_pending = lantern_sd_pending_count() > 0;
   ESP_ERROR_CHECK(lantern_display_init());
   ESP_ERROR_CHECK(lantern_audio_init());
+#if CONFIG_LANTERN_BOARD_WAVESHARE_LCD_154
+  lantern_display_set_volume(lantern_audio_volume());
+#endif
   lantern_audio_set_archive_callback(lantern_sd_recording_write);
   if (lantern_wake_init() == ESP_OK) {
     s_wake_available = true;

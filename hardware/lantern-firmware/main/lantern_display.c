@@ -48,6 +48,7 @@ typedef struct {
   int wifi_rssi;
   lantern_connectivity_t connectivity;
   bool paired;
+  int volume;
 } display_update_t;
 
 static portMUX_TYPE s_update_lock = portMUX_INITIALIZER_UNLOCKED;
@@ -58,6 +59,7 @@ static display_update_t s_requested = {
   .battery_level = -1,
   .power_state = LANTERN_POWER_UNKNOWN,
   .wifi_rssi = -127,
+  .volume = -1,
 };
 
 // Only this task owns the framebuffer and DMA staging buffer. A one-item
@@ -490,6 +492,16 @@ void lantern_display_set_awake(bool awake) {
   gpio_set_level(LANTERN_DISPLAY_BACKLIGHT_GPIO, awake ? 1 : 0);
 }
 
+void lantern_display_set_volume(unsigned percent) {
+  display_update_t update;
+  if (percent > 100) percent = 100;
+  taskENTER_CRITICAL(&s_update_lock);
+  s_requested.volume = (int)percent;
+  update = s_requested;
+  taskEXIT_CRITICAL(&s_update_lock);
+  if (s_updates) xQueueOverwrite(s_updates, &update);
+}
+
 void lantern_display_set_charge_eta(int minutes) {
   display_update_t update;
   if (minutes < 0) minutes = -1;
@@ -545,6 +557,7 @@ static void draw_status_bar(
     lantern_connectivity_t connectivity,
     int wifi_rssi,
     bool paired,
+    int volume,
     uint16_t background,
     uint16_t foreground,
     uint16_t green,
@@ -575,6 +588,11 @@ static void draw_status_bar(
   else if (connectivity == LANTERN_CONNECTIVITY_WEAK) connection = "WEAK";
   else if (connectivity == LANTERN_CONNECTIVITY_ONLINE) connection = paired ? "ONLINE" : "WIFI";
   draw_text(28, 9, connection, 1, wifi_connected ? signal_color : red);
+  if (volume >= 0) {
+    char label[8];
+    snprintf(label, sizeof(label), "V%u", (unsigned)volume);
+    draw_text(80, 9, label, 1, foreground);
+  }
 
   char battery[16];
   if (battery_level >= 0) snprintf(battery, sizeof(battery), "%d%%", battery_level);
@@ -645,6 +663,7 @@ static void render_screen(const display_update_t *update) {
   static int previous_rssi = 1;
   static lantern_connectivity_t previous_connectivity = (lantern_connectivity_t)-1;
   static bool previous_paired;
+  static int previous_volume = -1;
   const lantern_screen_t screen = update->screen;
   const char *detail = update->detail;
   const bool view_changed = (int)update->view != previous_view;
@@ -655,7 +674,7 @@ static void render_screen(const display_update_t *update) {
     update->power_state != previous_power ||
     update->wifi_rssi != previous_rssi ||
     update->connectivity != previous_connectivity ||
-    update->paired != previous_paired;
+    update->paired != previous_paired || update->volume != previous_volume;
   // The setup headline changes from networking to pairing when STA gets an IP.
   if (screen == LANTERN_SCREEN_SETUP && status_changed) screen_changed = true;
   if (!screen_changed && !detail_changed && !status_changed) return;
@@ -700,7 +719,7 @@ static void render_screen(const display_update_t *update) {
     if (status_changed) {
       draw_status_bar(update->battery_level, update->power_state,
         update->connectivity, update->wifi_rssi,
-        update->paired, background, foreground, success, amber, red);
+        update->paired, update->volume, background, foreground, success, amber, red);
       complete = flush_rows(0, 29) && complete;
     }
     if (detail_changed) {
@@ -712,7 +731,7 @@ static void render_screen(const display_update_t *update) {
     fill(background);
     draw_status_bar(update->battery_level, update->power_state,
       update->connectivity, update->wifi_rssi,
-      update->paired, background, foreground, success, amber, red);
+      update->paired, update->volume, background, foreground, success, amber, red);
 
     if (update->view == DISPLAY_SPLASH) {
       centered_text(45, "QUIPUS", 2, foreground);
@@ -839,5 +858,6 @@ static void render_screen(const display_update_t *update) {
     previous_rssi = update->wifi_rssi;
     previous_connectivity = update->connectivity;
     previous_paired = update->paired;
+    previous_volume = update->volume;
   }
 }

@@ -51,6 +51,7 @@ void lantern_display_show_keyboard(const char *ssid, const char *password,
 void lantern_display_show_detail(const char *title, const char *body,
                                  const char *footer);
 void lantern_display_set_charge_eta(int minutes);
+void lantern_display_set_volume(unsigned percent);
 void lantern_display_set_awake(bool awake);
 // Updates the persistent top status bar without changing the active screen.
 // battery_level is -1 when measurement is unavailable; wifi_rssi is dBm.

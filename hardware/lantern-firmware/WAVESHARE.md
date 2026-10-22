@@ -119,15 +119,42 @@ See [Bluetooth setup design and validation](../../docs/bluetooth-setup.md).
    normal internet; setup returns to the Quipus website when it is reachable.
    A **Return to Quipus** link remains available. The manual fallback is
    `http://192.168.4.1/` plus the pairing code shown on the dashboard.
-2. Short-press **PLUS** to request recording, then follow the consent prompt.
-   Press PLUS again to stop. Hold PLUS for 1.2 seconds while ready for a daily
-   report. PLUS also interrupts report playback.
-3. The existing wake phrase is **Computer**; follow it with a command.
-4. Hold **BOOT + PLUS** for three seconds to clear Wi-Fi/pairing. Unsynced
-   private recordings block reset until synced.
-5. Hold **PWR** for two seconds while ready to power down. Active sessions and
-   unsynced private recordings block shutdown. USB-powered boards enter deep
-   sleep after button release; press PWR again to wake.
+2. Use the controls below with the screen facing you and the **three buttons
+   ABOVE the display**, matching the Quipus screen orientation in our device photos.
+
+| Position | Hardware button | Tap and release | Hold |
+| --- | --- | --- | --- |
+| **Left** | PLUS, GPIO 4 | Request consent/start; stop an active recording; interrupt a report | 1.2 s while ready: daily report; during recording: stop |
+| **Middle** | PWR, GPIO 5 | **Volume down** by 10 points | 2 s while ready: power off/sleep, if no private recordings are pending |
+| **Right** | BOOT, GPIO 0 | **Volume up** by 10 points | Hold while connecting USB only to enter the flashing bootloader |
+
+These volume controls require **0.10.2 or later**. Range: 0–100; 0 mutes
+speaker output, 100 is the configured codec maximum. Startup volume is 80;
+changes last until restart. The top status bar shows `V80`, for example.
+Chimes, spoken prompts, reports and local replay all follow the volume setting;
+microphone gain and stored recordings do not change. Volume taps work during
+report playback. Holds longer than 1.2 s do not produce a volume tap.
+
+Hold **left + right** (PLUS + BOOT) for three seconds to clear Wi-Fi/pairing.
+Unsynced private recordings block reset. Chords never change volume or start a
+recording. Holding middle to shut down is blocked during an active session or
+while private recordings remain unsynced. With USB attached, shutdown enters
+deep sleep after release; press middle again to wake. For normal power-on,
+leave BOOT released. The wake phrase is **Computer**, followed by a command.
+
+If you rotate the unit so the buttons are BELOW the display, left/right swap:
+BOOT is then on the left and PLUS on the right. The middle PWR button is unchanged.
+
+## Download compiled firmware
+
+Open [Waveshare firmware builds](https://github.com/jinchuntan/quipus/actions/workflows/waveshare-firmware.yml),
+choose a successful run for the source commit you want, then download the
+`quipus-waveshare-lcd-154` artifact. Extract the Actions download, then extract
+`quipus-waveshare-lcd-154.zip` inside it. `README.txt` contains the Windows flash
+command. Install **all five images together**, using the included `flash_args`.
+The manifest records the firmware version, source commit, backend and file hashes.
+A successful build establishes compilation and portable checks; the physical
+acceptance checks below still apply.
 
 ## Validation
 

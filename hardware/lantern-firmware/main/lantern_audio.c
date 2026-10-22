@@ -1,6 +1,7 @@
 #include "lantern_audio.h"
 
 #include <limits.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 
 #include "driver/i2s_std.h"
@@ -15,6 +16,7 @@
 #include "lantern_board.h"
 #include "lantern_board_io.h"
 #include "quipus_pcm.h"
+#include "quipus_volume.h"
 
 #define AUDIO_READ_SAMPLES 320
 #define AUDIO_WRITE_SAMPLES 240
@@ -46,15 +48,40 @@ static volatile bool s_pcm_input_finished;
 static volatile bool s_pcm_failed;
 static volatile bool s_pcm_cancelled;
 static volatile bool s_speaker_active;
+#if CONFIG_LANTERN_BOARD_WAVESHARE_LCD_154
+static atomic_uint s_volume = QUIPUS_VOLUME_DEFAULT;
+#else
+static atomic_uint s_volume = 100;
+#endif
+
+unsigned lantern_audio_volume(void) {
+  return atomic_load_explicit(&s_volume, memory_order_relaxed);
+}
+
+unsigned lantern_audio_adjust_volume(int delta) {
+  unsigned current = lantern_audio_volume();
+  unsigned next;
+  do {
+    next = quipus_volume_clamp((int)current + delta);
+  } while (!atomic_compare_exchange_weak_explicit(
+      &s_volume, &current, next, memory_order_relaxed, memory_order_relaxed));
+  return next;
+}
+
+static int16_t speaker_sample(int16_t sample) {
+  return quipus_volume_sample(sample, lantern_audio_volume());
+}
 
 #if LANTERN_AUDIO_SHARED_BUS
 typedef int16_t i2s_output_sample_t;
-static i2s_output_sample_t output_sample(int16_t sample) { return sample; }
+static i2s_output_sample_t output_sample(int16_t sample) {
+  return speaker_sample(sample);
+}
 #define I2S_OUTPUT_CHANNELS (LANTERN_AUDIO_ADC_ES7210 ? 2 : 1)
 #else
 typedef int32_t i2s_output_sample_t;
 static i2s_output_sample_t output_sample(int16_t sample) {
-  return (int32_t)sample * 32768;
+  return (int32_t)speaker_sample(sample) * 32768;
 }
 #define I2S_OUTPUT_CHANNELS 1
 #endif

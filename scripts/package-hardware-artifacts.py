@@ -5,11 +5,17 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
+import re
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+FIRMWARE_VERSION = re.search(
+    r'#define LANTERN_FIRMWARE_VERSION "([^"]+)"',
+    (ROOT / "hardware/lantern-firmware/main/lantern_board.h").read_text(),
+).group(1)
 PROFILES = {"original": "build", "touchscreen": "build-v2", "phone-usb": "build-phone"}
 WAVESHARE_PROFILE = {"waveshare": "build-waveshare"}
 EXPECTED_IMAGES = {
@@ -95,12 +101,19 @@ manifest.json contains SHA-256 and byte counts for every payload file.
         entries["README.txt"] = f"""QUIPUS - WAVESHARE ESP32-S3-LCD-1.54 (NON-TOUCH)
 
 ESP-IDF 5.2.3 build. USB-powered default; battery percentage disabled.
+Firmware version: {FIRMWARE_VERSION}
 Backend and pairing dashboard: {backend}/dashboard/devices
 Bluetooth setup: Chrome on Windows or Android; enter the PIN shown on the recorder
 if the operating system requests it. The recorder still uploads over 2.4 GHz Wi-Fi.
 Only install on the Waveshare ESP32-S3-LCD-1.54, 16 MB flash / 8 MB PSRAM.
 All five required images are included, including the Computer wake-word model.
 See WAVESHARE.md for controls and microSD requirements; BLUETOOTH.md covers setup.
+Hold screen facing you with the three buttons ABOVE the display:
+  LEFT (PLUS): tap for consent/start/stop; hold 1.2 s when ready for a report.
+  MIDDLE (PWR): tap for volume DOWN; hold 2 s when ready for shutdown.
+  RIGHT (BOOT): tap for volume UP. Do not hold it while powering on normally.
+Volume changes in 10-point steps, 0=mute, 100=maximum, default=80 after restart.
+Hold LEFT + RIGHT for 3 s to reset setup; pending private recordings block reset.
 
 Install esptool 4.12.0 into your Python environment:
   python -m pip install esptool==4.12.0
@@ -119,6 +132,8 @@ manifest.json records the backend URL, SHA-256 checksum and byte count of each p
 """.encode("utf-8")
     manifest = {
         "createdAt": datetime.now(timezone.utc).isoformat(),
+        "firmwareVersion": FIRMWARE_VERSION,
+        "sourceCommit": os.environ.get("GITHUB_SHA"),
         "purpose": "local-build-handoff-no-flash-no-deploy",
         "firmwareProfiles": profiles,
         "files": {name: {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
