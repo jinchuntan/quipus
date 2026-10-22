@@ -590,7 +590,8 @@ static void draw_status_bar(
   draw_text(28, 9, connection, 1, wifi_connected ? signal_color : red);
   if (volume >= 0) {
     char label[8];
-    snprintf(label, sizeof(label), "V%u", (unsigned)volume);
+    unsigned percent = volume > 100 ? 100U : (unsigned)volume;
+    snprintf(label, sizeof(label), "V%u", percent);
     draw_text(80, 9, label, 1, foreground);
   }
 
